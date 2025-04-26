@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: workspire
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backup.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://postgres:12345@db:5432/workspire
+      DB_HOST: db
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: ["npm", "start"]
+
+  clients:
+    build:
+      context: ./clients
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./clients:/app
+    working_dir: /app
+    command: ["npm", "start"]
+
+volumes:
+  pgdata:
